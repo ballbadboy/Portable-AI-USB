@@ -1,24 +1,55 @@
 #!/bin/bash
 # ================================================================
-# PORTABLE UNCENSORED AI - MAC LAUNCHER
-# ================================================================
-# Just double-click this file on any Mac to start your portable AI.
-# Everything runs from the USB drive. Nothing is installed on the Mac.
+# PORTABLE AI - MAC LAUNCHER
+# Gemma 4 E2B + E4B Dual-Model Edition
 # ================================================================
 
-# Move to the USB drive directory where this script lives
 cd "$(dirname "$0")"
-
 USB_DIR=$(pwd)
 MAC_OLLAMA_DIR="$USB_DIR/ollama_mac"
 DATA_DIR="$USB_DIR/ollama/data"
+CONFIG="$USB_DIR/active-model.txt"
 
 echo "==================================================="
-echo "    Launching Portable AI Engine for Mac...      "
+echo "    Portable AI - Gemma 4 E2B + E4B Edition"
 echo "==================================================="
+echo ""
+
+# Read active model from config
+if [ -f "$CONFIG" ]; then
+    ACTIVE_MODEL=$(cat "$CONFIG")
+else
+    ACTIVE_MODEL="gemma4:e4b"
+fi
+
+# Model selection menu
+echo "  Current model: $ACTIVE_MODEL"
+echo ""
+echo "  [1] gemma4:e2b  - Fast, works on any machine (~1.5 GB RAM)"
+echo "  [2] gemma4:e4b  - Better quality, needs 8 GB RAM"
+echo "  [3] Keep current ($ACTIVE_MODEL)"
+echo ""
+read -p "  Select model (1/2/3, or Enter to keep current): " CHOICE
+
+case "$CHOICE" in
+    1)
+        ACTIVE_MODEL="gemma4:e2b"
+        echo "$ACTIVE_MODEL" > "$CONFIG"
+        echo "  Switched to gemma4:e2b"
+        ;;
+    2)
+        ACTIVE_MODEL="gemma4:e4b"
+        echo "$ACTIVE_MODEL" > "$CONFIG"
+        echo "  Switched to gemma4:e4b"
+        ;;
+esac
+
+echo ""
+echo "  Starting with: $ACTIVE_MODEL"
+echo ""
 
 # -----------------------------------------------------------------
-# STEP 1: Download Mac Ollama Engine (first time only)
+# Download Mac Ollama Engine (first time only)
 # -----------------------------------------------------------------
 if [ ! -d "$MAC_OLLAMA_DIR/Ollama.app" ] && [ ! -f "$MAC_OLLAMA_DIR/ollama" ]; then
     echo "First time on Mac! Downloading the AI Engine..."
@@ -27,86 +58,80 @@ if [ ! -d "$MAC_OLLAMA_DIR/Ollama.app" ] && [ ! -f "$MAC_OLLAMA_DIR/ollama" ]; t
     echo "Extracting..."
     unzip -o -q "$MAC_OLLAMA_DIR/ollama-darwin.zip" -d "$MAC_OLLAMA_DIR/"
     rm "$MAC_OLLAMA_DIR/ollama-darwin.zip"
-    
-    # Make executable
     if [ -f "$MAC_OLLAMA_DIR/Ollama.app/Contents/MacOS/Ollama" ]; then
         chmod +x "$MAC_OLLAMA_DIR/Ollama.app/Contents/MacOS/Ollama"
     elif [ -f "$MAC_OLLAMA_DIR/ollama" ]; then
         chmod +x "$MAC_OLLAMA_DIR/ollama"
     fi
-    
     echo "Mac Engine Setup Complete!"
     echo ""
 fi
 
 # -----------------------------------------------------------------
-# STEP 2: Download AnythingLLM (first time only, fully portable!)
+# Download AnythingLLM (first time only)
 # -----------------------------------------------------------------
 if [ ! -d "$USB_DIR/anythingllm_mac/AnythingLLM.app" ]; then
     echo "First time setup: Downloading AnythingLLM directly to USB..."
-    echo "NO installation on the Mac! Everything stays on the drive."
     mkdir -p "$USB_DIR/anythingllm_mac"
-    
-    # Download the DMG
     curl -L --progress-bar "https://cdn.anythingllm.com/latest/AnythingLLMDesktop-Silicon.dmg" -o "$USB_DIR/anythingllm_mac/AnythingLLM_Installer.dmg"
-    
     echo "Extracting AnythingLLM to USB (please wait)..."
-    # Mount the DMG silently and extract
     MOUNT_DIR=$(hdiutil attach -nobrowse "$USB_DIR/anythingllm_mac/AnythingLLM_Installer.dmg" | grep -o '/Volumes/.*')
-    
-    # Copy the app to the USB
     cp -R "$MOUNT_DIR/AnythingLLM.app" "$USB_DIR/anythingllm_mac/"
-    
-    # Clean up
     hdiutil detach "$MOUNT_DIR"
     rm "$USB_DIR/anythingllm_mac/AnythingLLM_Installer.dmg"
-    
-    # Remove Apple quarantine so it runs from USB without being blocked
     xattr -rc "$USB_DIR/anythingllm_mac/AnythingLLM.app"
-    
     echo "AnythingLLM extracted and ready!"
 fi
 
 # -----------------------------------------------------------------
-# STEP 3: Launch the AI Engine
+# Launch Ollama Engine
 # -----------------------------------------------------------------
-echo ""
 echo "Starting AI Engine from USB..."
 
-# Lock all data paths to the USB drive
 export OLLAMA_MODELS="$DATA_DIR"
 export STORAGE_DIR="$USB_DIR/anythingllm_data"
 mkdir -p "$STORAGE_DIR"
+mkdir -p "$DATA_DIR"
 
-# Start Ollama in background
+# Find Ollama binary
+OLLAMA_BIN=""
 if [ -f "$MAC_OLLAMA_DIR/Ollama.app/Contents/MacOS/Ollama" ]; then
-    "$MAC_OLLAMA_DIR/Ollama.app/Contents/MacOS/Ollama" serve > /dev/null 2>&1 &
+    OLLAMA_BIN="$MAC_OLLAMA_DIR/Ollama.app/Contents/MacOS/Ollama"
 elif [ -f "$MAC_OLLAMA_DIR/ollama" ]; then
-    "$MAC_OLLAMA_DIR/ollama" serve > /dev/null 2>&1 &
+    OLLAMA_BIN="$MAC_OLLAMA_DIR/ollama"
 else
     echo "Error: Could not find the Ollama binary on the USB drive!"
+    read -p "Press Enter to exit..."
+    exit 1
 fi
-OLLAMA_PID=$!
 
+"$OLLAMA_BIN" serve > /dev/null 2>&1 &
+OLLAMA_PID=$!
 sleep 3
 
+# Pull model if not already on USB
+MODEL_EXISTS=$("$OLLAMA_BIN" list 2>/dev/null | grep "$ACTIVE_MODEL")
+if [ -z "$MODEL_EXISTS" ]; then
+    echo "  Downloading $ACTIVE_MODEL (first time only)..."
+    "$OLLAMA_BIN" pull "$ACTIVE_MODEL"
+fi
+
 echo ""
 echo "==================================================="
-echo "  SYSTEM ONLINE: Your AI is running from the USB!  "
+echo "  SYSTEM ONLINE: $ACTIVE_MODEL running from USB!"
 echo "==================================================="
 echo ""
 
-# Launch AnythingLLM from USB
+# Launch AnythingLLM
 echo "Opening AnythingLLM..."
 open --env STORAGE_DIR="$STORAGE_DIR" "$USB_DIR/anythingllm_mac/AnythingLLM.app"
 
 echo ""
-echo "Keep this terminal open while you chat!"
-echo "Press [ENTER] to shut down the AI safely."
+echo "  To switch model: quit and restart, pick a different option"
+echo "  Keep this terminal open while you chat!"
 echo ""
+read -p "  Hit [ENTER] to shut down the AI safely..."
 
-# Wait for user, then clean shutdown
-read -p "Hit [ENTER] to turn off the Engine..."
 kill $OLLAMA_PID 2>/dev/null
 killall AnythingLLM 2>/dev/null
 echo "AI shut down. You may safely eject the USB."

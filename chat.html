@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portable AI Assistant</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --sidebar-bg: #1c1c1c;
+    --sidebar-hover: #2a2a2a;
+    --sidebar-active: #333333;
+    --main-bg: #f9f8f5;
+    --chat-bg: #ffffff;
+    --accent: #c96442;
+    --accent-light: #f0e6e0;
+    --text-primary: #1a1a1a;
+    --text-secondary: #6b6b6b;
+    --text-sidebar: #d4d4d4;
+    --border: #e8e8e3;
+    --user-bubble: #f0ede8;
+    --input-bg: #ffffff;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    --radius: 12px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans Thai', sans-serif;
+    background: var(--main-bg);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    gap: 4px;
+    overflow: hidden;
+  }
+
+  #logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 8px 16px;
+    border-bottom: 1px solid #2a2a2a;
+    margin-bottom: 4px;
+  }
+
+  #logo svg { flex-shrink: 0; }
+
+  #logo span {
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+
+  #logo small {
+    display: block;
+    color: #666;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  #new-chat-btn {
+    background: transparent;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: var(--text-sidebar);
+    padding: 9px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+    margin-bottom: 4px;
+  }
+
+  #new-chat-btn:hover { background: var(--sidebar-hover); border-color: #444; }
+
+  #model-selector {
+    padding: 8px;
+    background: var(--sidebar-hover);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+
+  #model-selector label {
+    display: block;
+    color: #666;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+
+  #model-select {
+    width: 100%;
+    background: #1c1c1c;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: var(--text-sidebar);
+    padding: 6px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  #model-select:focus { border-color: var(--accent); }
+
+  #chat-history-label {
+    color: #555;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 4px 8px;
+  }
+
+  #chat-history {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  #chat-history::-webkit-scrollbar { width: 4px; }
+  #chat-history::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+  .history-item {
+    padding: 8px 10px;
+    border-radius: 8px;
+    color: #aaa;
+    font-size: 12.5px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .history-item:hover { background: var(--sidebar-hover); color: #ddd; }
+  .history-item.active { background: var(--sidebar-active); color: #fff; }
+  .history-item svg { flex-shrink: 0; opacity: 0.5; }
+
+  #status-bar {
+    border-top: 1px solid #2a2a2a;
+    padding: 10px 8px 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  #status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #666;
+    transition: background 0.3s;
+  }
+
+  #status-dot.online { background: #4ade80; }
+  #status-dot.thinking { background: var(--accent); animation: pulse 1s infinite; }
+
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  #status-text { color: #555; font-size: 11px; }
+
+  /* ── MAIN CHAT ── */
+  #main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--main-bg);
+  }
+
+  #chat-header {
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--main-bg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #chat-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  #model-badge {
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  /* ── MESSAGES ── */
+  #messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 0;
+  }
+
+  #messages-container::-webkit-scrollbar { width: 5px; }
+  #messages-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  #messages { max-width: 720px; margin: 0 auto; padding: 0 24px; display: flex; flex-direction: column; gap: 24px; }
+
+  /* Welcome screen */
+  #welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+    text-align: center;
+    gap: 16px;
+  }
+
+  #welcome svg { opacity: 0.6; }
+
+  #welcome h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+
+  #welcome p { color: var(--text-secondary); font-size: 14px; line-height: 1.6; max-width: 380px; }
+
+  .suggestion-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 8px;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .suggestion-btn {
+    background: var(--chat-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-align: left;
+    line-height: 1.4;
+    transition: all 0.15s;
+  }
+
+  .suggestion-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+    background: var(--accent-light);
+  }
+
+  /* Message rows */
+  .msg-row { display: flex; gap: 12px; align-items: flex-start; }
+  .msg-row.user { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .avatar.ai { background: var(--accent); color: white; }
+  .avatar.user { background: #e0ddd8; color: #555; }
+
+  .msg-bubble {
+    max-width: calc(100% - 48px);
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .msg-row.user .msg-bubble {
+    background: var(--user-bubble);
+    color: var(--text-primary);
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg-row.ai .msg-bubble {
+    background: transparent;
+    color: var(--text-primary);
+    padding: 4px 0;
+  }
+
+  /* Markdown styles inside bubble */
+  .msg-bubble h1, .msg-bubble h2, .msg-bubble h3 {
+    font-weight: 600;
+    margin: 16px 0 8px;
+    letter-spacing: -0.2px;
+    line-height: 1.3;
+  }
+  .msg-bubble h1 { font-size: 18px; }
+  .msg-bubble h2 { font-size: 16px; }
+  .msg-bubble h3 { font-size: 14px; }
+
+  .msg-bubble p { margin-bottom: 10px; }
+  .msg-bubble p:last-child { margin-bottom: 0; }
+
+  .msg-bubble ul, .msg-bubble ol {
+    padding-left: 20px;
+    margin-bottom: 10px;
+  }
+  .msg-bubble li { margin-bottom: 4px; }
+
+  .msg-bubble code {
+    background: #f0ede8;
+    border: 1px solid #e0dcd6;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12.5px;
+  }
+
+  .msg-bubble pre {
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 10px 0;
+    position: relative;
+  }
+
+  .msg-bubble pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #d4d4d4;
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+
+  .code-header {
+    background: #2d2d2d;
+    border-radius: 8px 8px 0 0;
+    padding: 6px 14px;
+    font-size: 11px;
+    color: #888;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: -8px;
+  }
+
+  .copy-btn {
+    background: transparent;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { background: #444; color: #aaa; }
+
+  .msg-bubble strong { font-weight: 600; }
+  .msg-bubble em { font-style: italic; color: #555; }
+
+  .msg-bubble blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: 12px;
+    margin: 8px 0;
+    color: #666;
+    font-style: italic;
+  }
+
+  .msg-bubble table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0;
+    font-size: 13px;
+  }
+  .msg-bubble th, .msg-bubble td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .msg-bubble th { background: var(--user-bubble); font-weight: 600; }
+
+  .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 16px;
+    background: var(--accent);
+    margin-left: 1px;
+    vertical-align: text-bottom;
+    animation: blink 0.8s infinite;
+  }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+  /* ── INPUT AREA ── */
+  #input-area {
+    padding: 16px 24px 24px;
+    background: var(--main-bg);
+  }
+
+  #input-box {
+    max-width: 720px;
+    margin: 0 auto;
+    background: var(--input-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #input-box:focus-within {
+    border-color: #c0bbb5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  #input-tools {
+    padding: 10px 14px 0;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .tool-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    font-size: 11.5px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .tool-btn:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+  #input-row { display: flex; align-items: flex-end; padding: 8px 14px 10px; gap: 8px; }
+
+  #user-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text-primary);
+    resize: none;
+    min-height: 24px;
+    max-height: 160px;
+    line-height: 1.6;
+    overflow-y: auto;
+  }
+
+  #user-input::placeholder { color: #b0ada8; }
+
+  #send-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  #send-btn:hover { background: #b5563a; transform: scale(1.05); }
+  #send-btn:disabled { background: #d4cdc8; cursor: not-allowed; transform: none; }
+
+  #input-hint {
+    text-align: center;
+    font-size: 11px;
+    color: #bbb;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div id="logo">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+      <rect width="28" height="28" rx="8" fill="#c96442"/>
+      <path d="M14 6C14 6 8 10 8 15.5C8 18.5 10.5 21 14 21C17.5 21 20 18.5 20 15.5C20 10 14 6 14 6Z" fill="white" opacity="0.9"/>
+      <circle cx="14" cy="15.5" r="3" fill="#c96442"/>
+    </svg>
+    <span>Portable AI <small>Gemma 4 Edition</small></span>
+  </div>
+
+  <button id="new-chat-btn" onclick="newChat()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M12 5v14M5 12h14"/>
+    </svg>
+    แชทใหม่
+  </button>
+
+  <div id="model-selector">
+    <label>Model ที่ใช้งาน</label>
+    <select id="model-select" onchange="switchModel(this.value)">
+      <option value="gemma4:e4b">gemma4:e4b — คุณภาพดี</option>
+      <option value="gemma4:e2b">gemma4:e2b — เร็วกว่า</option>
+    </select>
+  </div>
+
+  <div id="chat-history-label">ประวัติการสนทนา</div>
+
+  <div id="chat-history"></div>
+
+  <div id="status-bar">
+    <div id="status-dot"></div>
+    <span id="status-text">กำลังเชื่อมต่อ...</span>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+  <div id="chat-header">
+    <span id="chat-title">ผู้ช่วยส่วนตัว</span>
+    <span id="model-badge">gemma4:e4b</span>
+  </div>
+
+  <div id="messages-container">
+    <div id="messages">
+      <div id="welcome">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect width="48" height="48" rx="14" fill="#c96442"/>
+          <path d="M24 10C24 10 14 17 14 26C14 31 18.5 35 24 35C29.5 35 34 31 34 26C34 17 24 10 24 10Z" fill="white" opacity="0.9"/>
+          <circle cx="24" cy="26" r="5" fill="#c96442"/>
+        </svg>
+        <h2>สวัสดี ฉันคือผู้ช่วย AI ของคุณ</h2>
+        <p>ช่วยงานเอกสาร เขียนโค้ด สร้าง Presentation เชี่ยวชาญภาษาไทย และทำงานร่วมกับ MCP skills ได้</p>
+        <div class="suggestion-grid">
+          <button class="suggestion-btn" onclick="suggest(this)">📄 ร่างรายงานหรือเอกสารธุรกิจ</button>
+          <button class="suggestion-btn" onclick="suggest(this)">🖥️ สร้าง Presentation outline</button>
+          <button class="suggestion-btn" onclick="suggest(this)">💻 เขียนหรือ debug โค้ด</button>
+          <button class="suggestion-btn" onclick="suggest(this)">🔧 ช่วยตั้งค่า MCP server</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="input-area">
+    <div id="input-box">
+      <div id="input-tools">
+        <button class="tool-btn" onclick="insertTemplate('doc')">📄 เอกสาร</button>
+        <button class="tool-btn" onclick="insertTemplate('ppt')">🖥️ Presentation</button>
+        <button class="tool-btn" onclick="insertTemplate('code')">💻 Code</button>
+        <button class="tool-btn" onclick="insertTemplate('mcp')">🔧 MCP</button>
+      </div>
+      <div id="input-row">
+        <textarea id="user-input" placeholder="พิมพ์ข้อความ... (Enter ส่ง, Shift+Enter ขึ้นบรรทัดใหม่)" rows="1"></textarea>
+        <button id="send-btn" onclick="sendMessage()" title="ส่ง">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div id="input-hint">Portable AI · ทำงานออฟไลน์ · ข้อมูลเก็บในเครื่องทั้งหมด</div>
+  </div>
+</main>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────
+const OLLAMA_URL = 'http://localhost:11434';
+
+const SYSTEM_PROMPT = `คุณคือผู้ช่วย AI ส่วนตัวที่มีความสามารถหลากหลาย ทำงานได้อย่างเชี่ยวชาญในด้านต่อไปนี้:
+
+1. **งานเอกสาร** — ร่างรายงาน, จดหมาย, สัญญา, proposal, บันทึกการประชุม และเอกสารธุรกิจทุกประเภท ด้วยภาษาที่เป็นทางการและถูกต้อง
+2. **ภาษาไทย** — เชี่ยวชาญการเขียนภาษาไทยอย่างถูกต้อง ทั้งสำนวน ไวยากรณ์ และรูปแบบการเขียนแบบมืออาชีพ
+3. **Presentation** — ออกแบบโครงสร้าง สร้าง outline สไลด์ เนื้อหา speaker notes และคำแนะนำการนำเสนอ
+4. **MCP (Model Context Protocol)** — ช่วยตั้งค่า, เขียน server, แนะนำ skills และแก้ปัญหาการ integrate MCP กับ tools ต่าง ๆ
+5. **การเขียนโค้ด** — Python, JavaScript, TypeScript, Shell, PowerShell, SQL และภาษาอื่น ๆ รวมถึง debug และ code review
+
+กฎการตอบ:
+- ตอบเป็นภาษาไทยเป็นหลัก เว้นแต่ผู้ใช้จะถามเป็นภาษาอื่น
+- ใช้ markdown ในการจัดรูปแบบ — หัวข้อ, bullet, code block ตามความเหมาะสม
+- ตอบตรงประเด็น ชัดเจน และมีประโยชน์
+- สำหรับงานเอกสาร ให้ผลลัพธ์ที่ใช้งานได้จริงทันที`;
+
+// ── STATE ───────────────────────────────────────────────
+let currentModel = localStorage.getItem('activeModel') || 'gemma4:e4b';
+let conversations = JSON.parse(localStorage.getItem('conversations') || '[]');
+let currentConvId = null;
+let messages = [];
+let isStreaming = false;
+
+// ── INIT ────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('model-select').value = currentModel;
+  updateModelBadge();
+  renderHistory();
+  checkOllama();
+  autoResize();
+});
+
+document.getElementById('user-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+document.getElementById('user-input').addEventListener('input', autoResize);
+
+function autoResize() {
+  const ta = document.getElementById('user-input');
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
+}
+
+// ── OLLAMA CHECK ─────────────────────────────────────────
+async function checkOllama() {
+  try {
+    const r = await fetch(`${OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(3000) });
+    if (r.ok) setStatus('online', 'พร้อมใช้งาน');
+    else setStatus('offline', 'Ollama ไม่พร้อม');
+  } catch {
+    setStatus('offline', 'Ollama ไม่ตอบสนอง');
+  }
+}
+
+function setStatus(state, text) {
+  const dot = document.getElementById('status-dot');
+  dot.className = state === 'online' ? 'online' : state === 'thinking' ? 'thinking' : '';
+  document.getElementById('status-text').textContent = text;
+}
+
+// ── MODEL ────────────────────────────────────────────────
+function switchModel(model) {
+  currentModel = model;
+  localStorage.setItem('activeModel', model);
+  updateModelBadge();
+}
+
+function updateModelBadge() {
+  document.getElementById('model-badge').textContent = currentModel;
+}
+
+// ── CHAT ─────────────────────────────────────────────────
+function newChat() {
+  currentConvId = null;
+  messages = [];
+  document.getElementById('messages').innerHTML = document.getElementById('welcome')?.outerHTML || '';
+  showWelcome();
+  document.getElementById('chat-title').textContent = 'ผู้ช่วยส่วนตัว';
+  document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
+}
+
+function showWelcome() {
+  document.getElementById('messages').innerHTML = `
+  <div id="welcome">
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <rect width="48" height="48" rx="14" fill="#c96442"/>
+      <path d="M24 10C24 10 14 17 14 26C14 31 18.5 35 24 35C29.5 35 34 31 34 26C34 17 24 10 24 10Z" fill="white" opacity="0.9"/>
+      <circle cx="24" cy="26" r="5" fill="#c96442"/>
+    </svg>
+    <h2>สวัสดี ฉันคือผู้ช่วย AI ของคุณ</h2>
+    <p>ช่วยงานเอกสาร เขียนโค้ด สร้าง Presentation เชี่ยวชาญภาษาไทย และทำงานร่วมกับ MCP skills ได้</p>
+    <div class="suggestion-grid">
+      <button class="suggestion-btn" onclick="suggest(this)">📄 ร่างรายงานหรือเอกสารธุรกิจ</button>
+      <button class="suggestion-btn" onclick="suggest(this)">🖥️ สร้าง Presentation outline</button>
+      <button class="suggestion-btn" onclick="suggest(this)">💻 เขียนหรือ debug โค้ด</button>
+      <button class="suggestion-btn" onclick="suggest(this)">🔧 ช่วยตั้งค่า MCP server</button>
+    </div>
+  </div>`;
+}
+
+function suggest(btn) {
+  const text = btn.textContent.replace(/^[^\s]+\s/, '');
+  document.getElementById('user-input').value = text;
+  autoResize();
+  document.getElementById('user-input').focus();
+}
+
+async function sendMessage() {
+  if (isStreaming) return;
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  // Remove welcome screen
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  // Add user message
+  input.value = '';
+  autoResize();
+  messages.push({ role: 'user', content: text });
+  appendMessage('user', text);
+  scrollToBottom();
+
+  // Init conversation
+  if (!currentConvId) {
+    currentConvId = Date.now().toString();
+  }
+
+  // Send to Ollama
+  isStreaming = true;
+  document.getElementById('send-btn').disabled = true;
+  setStatus('thinking', 'กำลังคิด...');
+
+  const aiRow = appendMessage('ai', '');
+  const bubble = aiRow.querySelector('.msg-bubble');
+  bubble.innerHTML = '<span class="cursor"></span>';
+
+  let fullResponse = '';
+
+  try {
+    const res = await fetch(`${OLLAMA_URL}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: currentModel,
+        stream: true,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...messages.slice(0, -1),
+          { role: 'user', content: text }
+        ]
+      })
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n').filter(l => l.trim());
+      for (const line of lines) {
+        try {
+          const data = JSON.parse(line);
+          if (data.message?.content) {
+            fullResponse += data.message.content;
+            bubble.innerHTML = renderMarkdown(fullResponse) + '<span class="cursor"></span>';
+            scrollToBottom();
+          }
+        } catch {}
+      }
+    }
+
+    bubble.innerHTML = renderMarkdown(fullResponse);
+    messages.push({ role: 'assistant', content: fullResponse });
+    saveConversation(text, fullResponse);
+    setStatus('online', 'พร้อมใช้งาน');
+
+  } catch (err) {
+    bubble.innerHTML = `<span style="color:#c96442">⚠️ เชื่อมต่อ Ollama ไม่ได้ — ตรวจสอบว่า engine กำลังทำงานอยู่</span>`;
+    setStatus('offline', 'เชื่อมต่อไม่ได้');
+  }
+
+  isStreaming = false;
+  document.getElementById('send-btn').disabled = false;
+}
+
+// ── MESSAGE RENDERING ─────────────────────────────────────
+function appendMessage(role, text) {
+  const container = document.getElementById('messages');
+  const row = document.createElement('div');
+  row.className = `msg-row ${role}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = `avatar ${role}`;
+  avatar.textContent = role === 'ai' ? 'AI' : 'คุณ';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = role === 'user' ? escapeHtml(text) : renderMarkdown(text);
+
+  row.appendChild(avatar);
+  row.appendChild(bubble);
+  container.appendChild(row);
+  return row;
+}
+
+function scrollToBottom() {
+  const c = document.getElementById('messages-container');
+  c.scrollTop = c.scrollHeight;
+}
+
+// ── MARKDOWN RENDERER ─────────────────────────────────────
+function renderMarkdown(text) {
+  let html = escapeHtml(text);
+
+  // Code blocks
+  html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+    const label = lang || 'code';
+    return `<div class="code-header"><span>${label}</span><button class="copy-btn" onclick="copyCode(this)">คัดลอก</button></div><pre><code>${code.trim()}</code></pre>`;
+  });
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // Bold & italic
+  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Blockquote
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+
+  // Unordered lists
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`);
+
+  // Ordered lists
+  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+  // Tables (simple)
+  html = html.replace(/(\|.+\|\n)+/g, m => {
+    const rows = m.trim().split('\n').filter(r => !r.match(/^\|[-\s|]+\|$/));
+    if (rows.length < 2) return m;
+    const [header, ...body] = rows;
+    const th = header.split('|').filter(c => c.trim()).map(c => `<th>${c.trim()}</th>`).join('');
+    const td = body.map(r => '<tr>' + r.split('|').filter(c => c.trim()).map(c => `<td>${c.trim()}</td>`).join('') + '</tr>').join('');
+    return `<table><thead><tr>${th}</tr></thead><tbody>${td}</tbody></table>`;
+  });
+
+  // Paragraphs
+  html = html.replace(/\n\n+/g, '</p><p>');
+  html = html.replace(/\n/g, '<br>');
+  html = `<p>${html}</p>`;
+
+  // Fix double-wrapped block elements
+  html = html.replace(/<p>(<(?:h[1-3]|ul|ol|pre|blockquote|table|div)[\s>])/g, '$1');
+  html = html.replace(/(<\/(?:h[1-3]|ul|ol|pre|blockquote|table|div)>)<\/p>/g, '$1');
+  html = html.replace(/<p><\/p>/g, '');
+
+  return html;
+}
+
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function copyCode(btn) {
+  const code = btn.closest('.code-header').nextElementSibling?.querySelector('code')?.textContent;
+  if (code) {
+    navigator.clipboard.writeText(code).then(() => {
+      btn.textContent = 'คัดลอกแล้ว!';
+      setTimeout(() => btn.textContent = 'คัดลอก', 2000);
+    });
+  }
+}
+
+// ── HISTORY ──────────────────────────────────────────────
+function saveConversation(userMsg, aiMsg) {
+  const title = userMsg.slice(0, 40) + (userMsg.length > 40 ? '...' : '');
+  const existing = conversations.findIndex(c => c.id === currentConvId);
+  if (existing >= 0) {
+    conversations[existing].messages = messages;
+    conversations[existing].updated = Date.now();
+  } else {
+    conversations.unshift({ id: currentConvId, title, messages: [...messages], updated: Date.now() });
+    if (conversations.length > 50) conversations.pop();
+  }
+  localStorage.setItem('conversations', JSON.stringify(conversations));
+  renderHistory();
+}
+
+function renderHistory() {
+  const el = document.getElementById('chat-history');
+  el.innerHTML = conversations.map(c => `
+    <div class="history-item ${c.id === currentConvId ? 'active' : ''}" onclick="loadConversation('${c.id}')">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      ${escapeHtml(c.title)}
+    </div>
+  `).join('');
+}
+
+function loadConversation(id) {
+  const conv = conversations.find(c => c.id === id);
+  if (!conv) return;
+  currentConvId = id;
+  messages = [...conv.messages];
+  document.getElementById('messages').innerHTML = '';
+  messages.forEach(m => appendMessage(m.role === 'user' ? 'user' : 'ai', m.content));
+  document.getElementById('chat-title').textContent = conv.title;
+  renderHistory();
+  scrollToBottom();
+}
+
+// ── TEMPLATES ────────────────────────────────────────────
+const templates = {
+  doc: 'ช่วยร่างเอกสาร: ',
+  ppt: 'ช่วยสร้าง Presentation เรื่อง: ',
+  code: 'เขียนโค้ด Python สำหรับ: ',
+  mcp: 'ช่วยตั้งค่า MCP server สำหรับ: ',
+};
+
+function insertTemplate(type) {
+  const input = document.getElementById('user-input');
+  input.value = templates[type];
+  input.focus();
+  autoResize();
+}
+</script>
+</body>
+</html>

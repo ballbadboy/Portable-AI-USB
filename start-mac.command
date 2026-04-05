@@ -67,21 +67,6 @@ if [ ! -d "$MAC_OLLAMA_DIR/Ollama.app" ] && [ ! -f "$MAC_OLLAMA_DIR/ollama" ]; t
     echo ""
 fi
 
-# -----------------------------------------------------------------
-# Download AnythingLLM (first time only)
-# -----------------------------------------------------------------
-if [ ! -d "$USB_DIR/anythingllm_mac/AnythingLLM.app" ]; then
-    echo "First time setup: Downloading AnythingLLM directly to USB..."
-    mkdir -p "$USB_DIR/anythingllm_mac"
-    curl -L --progress-bar "https://cdn.anythingllm.com/latest/AnythingLLMDesktop-Silicon.dmg" -o "$USB_DIR/anythingllm_mac/AnythingLLM_Installer.dmg"
-    echo "Extracting AnythingLLM to USB (please wait)..."
-    MOUNT_DIR=$(hdiutil attach -nobrowse "$USB_DIR/anythingllm_mac/AnythingLLM_Installer.dmg" | grep -o '/Volumes/.*')
-    cp -R "$MOUNT_DIR/AnythingLLM.app" "$USB_DIR/anythingllm_mac/"
-    hdiutil detach "$MOUNT_DIR"
-    rm "$USB_DIR/anythingllm_mac/AnythingLLM_Installer.dmg"
-    xattr -rc "$USB_DIR/anythingllm_mac/AnythingLLM.app"
-    echo "AnythingLLM extracted and ready!"
-fi
 
 # -----------------------------------------------------------------
 # Launch Ollama Engine
@@ -122,9 +107,9 @@ echo "  SYSTEM ONLINE: $ACTIVE_MODEL running from USB!"
 echo "==================================================="
 echo ""
 
-# Launch AnythingLLM
-echo "Opening AnythingLLM..."
-open --env STORAGE_DIR="$STORAGE_DIR" "$USB_DIR/anythingllm_mac/AnythingLLM.app"
+# Launch chat UI in default browser
+echo "Opening Chat UI..."
+open "$USB_DIR/chat.html"
 
 echo ""
 echo "  To switch model: quit and restart, pick a different option"

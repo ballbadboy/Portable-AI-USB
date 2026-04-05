@@ -510,6 +510,101 @@
     color: #bbb;
     margin-top: 8px;
   }
+
+  /* ── RAG DOCS ── */
+  #docs-section {
+    border-top: 1px solid #2a2a2a;
+    padding-top: 8px;
+    margin-top: 4px;
+  }
+
+  #docs-label {
+    color: #555;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #upload-doc-btn {
+    background: transparent;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+  #upload-doc-btn:hover { color: var(--accent); }
+
+  #doc-list { display: flex; flex-direction: column; gap: 2px; padding: 2px 0; }
+
+  .doc-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    color: #888;
+    background: transparent;
+  }
+
+  .doc-item.active { background: #1e2a1e; color: #6dbb6d; }
+
+  .doc-remove {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    padding: 0 2px;
+  }
+  .doc-remove:hover { color: #e06060; }
+
+  .doc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #1e2a1e;
+    color: #6dbb6d;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-right: 4px;
+  }
+
+  /* ── ADMIN LINK ── */
+  #admin-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    color: #555;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s;
+    margin-top: 2px;
+  }
+  #admin-link:hover { background: var(--sidebar-hover); color: #aaa; }
+
+  /* ── RAG INDICATOR in header ── */
+  #rag-indicator {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #6dbb6d;
+  }
+  #rag-indicator.active { display: flex; }
 </style>
 </head>
 <body>
@@ -544,6 +639,25 @@
 
   <div id="chat-history"></div>
 
+  <!-- RAG DOCS -->
+  <div id="docs-section">
+    <div id="docs-label">
+      <span>เอกสาร (RAG)</span>
+      <button id="upload-doc-btn" onclick="document.getElementById('file-input').click()" title="อัพโหลดเอกสาร">+</button>
+    </div>
+    <div id="doc-list"></div>
+  </div>
+
+  <input type="file" id="file-input" accept=".txt,.md,.csv,.json,.js,.py,.ts,.html,.css,.xml" multiple style="display:none" onchange="handleFileUpload(event)">
+
+  <!-- ADMIN + AUTOMATION LINKS -->
+  <a href="admin.html" id="admin-link" target="_blank">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+    </svg>
+    Admin Panel
+  </a>
+
   <div id="status-bar">
     <div id="status-dot"></div>
     <span id="status-text">กำลังเชื่อมต่อ...</span>
@@ -554,7 +668,13 @@
 <main id="main">
   <div id="chat-header">
     <span id="chat-title">ผู้ช่วยส่วนตัว</span>
-    <span id="model-badge">gemma4:e4b</span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div id="rag-indicator">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span id="rag-count">0 เอกสาร</span>
+      </div>
+      <span id="model-badge">gemma4:e4b</span>
+    </div>
   </div>
 
   <div id="messages-container">
@@ -584,6 +704,8 @@
         <button class="tool-btn" onclick="insertTemplate('ppt')">🖥️ Presentation</button>
         <button class="tool-btn" onclick="insertTemplate('code')">💻 Code</button>
         <button class="tool-btn" onclick="insertTemplate('mcp')">🔧 MCP</button>
+        <button class="tool-btn" onclick="insertTemplate('auto')">🤖 Automation</button>
+        <button class="tool-btn" onclick="document.getElementById('file-input').click()">📎 แนบไฟล์</button>
       </div>
       <div id="input-row">
         <textarea id="user-input" placeholder="พิมพ์ข้อความ... (Enter ส่ง, Shift+Enter ขึ้นบรรทัดใหม่)" rows="1"></textarea>
@@ -749,7 +871,7 @@ async function sendMessage() {
         model: currentModel,
         stream: true,
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: SYSTEM_PROMPT + buildRagContext() },
           ...messages.slice(0, -1),
           { role: 'user', content: text }
         ]
@@ -936,6 +1058,7 @@ const templates = {
   ppt: 'ช่วยสร้าง Presentation เรื่อง: ',
   code: 'เขียนโค้ด Python สำหรับ: ',
   mcp: 'ช่วยตั้งค่า MCP server สำหรับ: ',
+  auto: 'ช่วยเขียน script อัตโนมัติสำหรับ: (ระบุ Windows หรือ Mac)',
 };
 
 function insertTemplate(type) {
@@ -943,6 +1066,65 @@ function insertTemplate(type) {
   input.value = templates[type];
   input.focus();
   autoResize();
+}
+
+// ── RAG ──────────────────────────────────────────────────
+let ragDocs = []; // [{ name, content }]
+
+function handleFileUpload(event) {
+  const files = Array.from(event.target.files);
+  event.target.value = '';
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const content = e.target.result;
+      const existing = ragDocs.findIndex(d => d.name === file.name);
+      if (existing >= 0) ragDocs[existing].content = content;
+      else ragDocs.push({ name: file.name, content });
+      renderDocList();
+    };
+    reader.readAsText(file, 'UTF-8');
+  });
+}
+
+function removeDoc(name) {
+  ragDocs = ragDocs.filter(d => d.name !== name);
+  renderDocList();
+}
+
+function renderDocList() {
+  const list = document.getElementById('doc-list');
+  const indicator = document.getElementById('rag-indicator');
+  const count = document.getElementById('rag-count');
+
+  list.innerHTML = ragDocs.map(d => `
+    <div class="doc-item active">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px">${escapeHtml(d.name)}</span>
+      <button class="doc-remove" onclick="removeDoc('${escapeHtml(d.name)}')" title="ลบ">✕</button>
+    </div>
+  `).join('');
+
+  if (ragDocs.length > 0) {
+    indicator.classList.add('active');
+    count.textContent = `${ragDocs.length} เอกสาร`;
+  } else {
+    indicator.classList.remove('active');
+  }
+}
+
+function buildRagContext() {
+  if (ragDocs.length === 0) return '';
+  const MAX_CHARS = 6000;
+  let context = '\n\n---\n📎 **เอกสารแนบ (ใช้เป็นข้อมูลอ้างอิง):**\n';
+  let total = 0;
+  for (const doc of ragDocs) {
+    const chunk = doc.content.slice(0, MAX_CHARS - total);
+    context += `\n### ${doc.name}\n${chunk}\n`;
+    total += chunk.length;
+    if (total >= MAX_CHARS) { context += '\n_(เอกสารถูกตัดเนื่องจากความยาว)_'; break; }
+  }
+  return context;
 }
 </script>
 </body>

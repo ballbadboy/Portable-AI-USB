@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel — Portable AI</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f0f0f;
+    --card: #1a1a1a;
+    --border: #2a2a2a;
+    --accent: #c96442;
+    --accent-dim: #3a1f15;
+    --text: #e0e0e0;
+    --text-dim: #666;
+    --green: #4ade80;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --radius: 10px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans Thai', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px; border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  header h1 { font-size: 16px; font-weight: 600; }
+  header small { color: var(--text-dim); font-size: 12px; font-weight: 400; margin-left: 8px; }
+  .back-btn {
+    background: transparent; border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-dim); padding: 7px 14px; font-size: 12px; cursor: pointer;
+    text-decoration: none; display: flex; align-items: center; gap: 6px;
+    transition: all 0.15s;
+  }
+  .back-btn:hover { border-color: var(--accent); color: var(--text); }
+
+  main { max-width: 960px; margin: 0 auto; padding: 28px 24px; display: flex; flex-direction: column; gap: 24px; }
+
+  /* STATUS ROW */
+  .status-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .stat-label { color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .stat-value { font-size: 22px; font-weight: 700; }
+  .stat-sub { color: var(--text-dim); font-size: 11px; margin-top: 4px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot.red { background: var(--red); }
+
+  /* SECTION */
+  .section { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .section-header {
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .section-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .section-body { padding: 16px 20px; }
+
+  /* MODELS */
+  .model-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .model-row:last-child { border-bottom: none; }
+  .model-name { font-size: 13px; font-weight: 500; flex: 1; }
+  .model-size { color: var(--text-dim); font-size: 12px; }
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+  .badge.active { background: var(--accent-dim); color: var(--accent); }
+  .badge.available { background: #1a2a1a; color: var(--green); }
+  .action-btn {
+    background: transparent; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-dim); padding: 5px 12px; font-size: 11px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.danger:hover { border-color: var(--red); color: var(--red); }
+  .action-btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .action-btn.primary:hover { background: #b5563a; }
+
+  /* PULL MODEL */
+  .pull-row { display: flex; gap: 8px; margin-top: 14px; }
+  .pull-input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); padding: 8px 12px; font-size: 13px; outline: none;
+    font-family: 'SF Mono', monospace;
+  }
+  .pull-input:focus { border-color: var(--accent); }
+  .pull-input::placeholder { color: var(--text-dim); }
+
+  /* AUTOMATION */
+  .auto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .auto-card {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; cursor: pointer; transition: all 0.15s;
+  }
+  .auto-card:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .auto-card h4 { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .auto-card p { font-size: 11.5px; color: var(--text-dim); line-height: 1.5; }
+
+  /* LOG */
+  #log-box {
+    background: var(--bg); border-radius: 8px; padding: 14px;
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px;
+    color: #aaa; line-height: 1.8; max-height: 200px; overflow-y: auto;
+    border: 1px solid var(--border);
+  }
+  .log-ok { color: var(--green); }
+  .log-err { color: var(--red); }
+  .log-info { color: var(--yellow); }
+
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #222; border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 16px; font-size: 13px; color: var(--text);
+    display: none; z-index: 999; animation: fadeIn 0.2s;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* SCRIPT OUTPUT */
+  #script-output {
+    display: none; margin-top: 14px; background: #1e1e1e; border-radius: 8px;
+    padding: 14px; font-family: 'SF Mono', monospace; font-size: 12px;
+    color: #d4d4d4; white-space: pre-wrap; max-height: 300px; overflow-y: auto;
+    border: 1px solid var(--border); position: relative;
+  }
+  .copy-script-btn {
+    position: absolute; top: 8px; right: 8px; background: #333; border: none;
+    color: #aaa; border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer;
+  }
+  .copy-script-btn:hover { background: #444; color: white; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo-icon">⚙️</div>
+    <h1>Admin Panel <small>Portable AI</small></h1>
+  </div>
+  <a href="chat.html" class="back-btn">
+    ← กลับไปแชท
+  </a>
+</header>
+
+<main>
+
+  <!-- STATUS -->
+  <div class="status-row">
+    <div class="stat-card">
+      <div class="stat-label">สถานะ Ollama</div>
+      <div class="stat-value" id="ollama-status">
+        <span class="dot red"></span>ตรวจสอบ...
+      </div>
+      <div class="stat-sub" id="ollama-version">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Model ที่โหลดอยู่</div>
+      <div class="stat-value" id="active-model-display">—</div>
+      <div class="stat-sub">จาก active-model.txt</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">จำนวน Model บน USB</div>
+      <div class="stat-value" id="model-count">—</div>
+      <div class="stat-sub" id="storage-info">กำลังตรวจสอบ...</div>
+    </div>
+  </div>
+
+  <!-- MODELS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        จัดการ Models
+      </div>
+      <button class="action-btn" onclick="refreshModels()">รีเฟรช</button>
+    </div>
+    <div class="section-body">
+      <div id="model-list">
+        <div style="color:var(--text-dim);font-size:13px">กำลังโหลด...</div>
+      </div>
+      <div class="pull-row">
+        <input type="text" class="pull-input" id="pull-input" placeholder="gemma4:e4b, gemma4:31b, llama3:8b ..." />
+        <button class="action-btn primary" onclick="pullModel()">⬇ Pull Model</button>
+      </div>
+      <div id="pull-progress" style="display:none;margin-top:10px;font-size:12px;color:var(--yellow)"></div>
+    </div>
+  </div>
+
+  <!-- BROWSER AUTOMATION -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        Browser Automation
+      </div>
+      <span style="font-size:11px;color:var(--text-dim)">สร้าง script อัตโนมัติผ่าน AI</span>
+    </div>
+    <div class="section-body">
+      <div class="auto-grid">
+        <div class="auto-card" onclick="autoPrompt('เปิด browser ไปที่ URL แล้วกรอกฟอร์ม login อัตโนมัติ')">
+          <h4>🌐 กรอกฟอร์มอัตโนมัติ</h4>
+          <p>สร้าง script เปิด browser และกรอกข้อมูลในฟอร์ม</p>
+        </div>
+        <div class="auto-card" onclick="autoPrompt('สร้าง script สำรองไฟล์อัตโนมัติจากโฟลเดอร์ที่กำหนดไปยัง USB')">
+          <h4>💾 Backup อัตโนมัติ</h4>
+          <p>Copy ไฟล์จากเครื่องมาเก็บใน USB</p>
+        </div>
+        <div class="auto-card" onclick="autoPrompt('สร้าง script ส่ง email อัตโนมัติผ่าน Mac Mail หรือ Outlook')">
+          <h4>📧 ส่ง Email อัตโนมัติ</h4>
+          <p>Script ส่ง email ผ่าน Mail app บน Mac หรือ Windows</p>
+        </div>
+        <div class="auto-card" onclick="autoPrompt('สร้าง script เปิดโปรแกรมหลายตัวพร้อมกันตอนเริ่มทำงาน')">
+          <h4>🚀 เปิดโปรแกรมเมื่อ start</h4>
+          <p>Launch apps ที่ต้องการอัตโนมัติเมื่อเสียบ USB</p>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;display:flex;gap:8px;">
+        <input type="text" class="pull-input" id="auto-prompt-input" placeholder="อธิบาย automation ที่ต้องการ..." />
+        <button class="action-btn primary" onclick="generateScript()">🤖 สร้าง Script</button>
+      </div>
+      <div id="auto-os" style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+        <span style="font-size:12px;color:var(--text-dim)">ระบบปฏิบัติการ:</span>
+        <label style="font-size:12px;cursor:pointer"><input type="radio" name="os" value="mac" checked> Mac (AppleScript)</label>
+        <label style="font-size:12px;cursor:pointer"><input type="radio" name="os" value="windows"> Windows (PowerShell)</label>
+      </div>
+      <div id="script-output">
+        <button class="copy-script-btn" onclick="copyScript()">คัดลอก</button>
+        <span id="script-content"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        ตั้งค่า
+      </div>
+    </div>
+    <div class="section-body" style="display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:13px;font-weight:500">Default Model</div>
+          <div style="font-size:11.5px;color:var(--text-dim);margin-top:2px">model ที่ใช้ตอนเริ่ม</div>
+        </div>
+        <select id="default-model-select" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;font-size:12px;cursor:pointer;" onchange="saveDefaultModel(this.value)">
+          <option value="gemma4:e4b">gemma4:e4b</option>
+          <option value="gemma4:e2b">gemma4:e2b</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:13px;font-weight:500">ล้างประวัติแชทใน browser</div>
+          <div style="font-size:11.5px;color:var(--text-dim);margin-top:2px">ลบ localStorage ทั้งหมด</div>
+        </div>
+        <button class="action-btn danger" onclick="clearHistory()">ล้างประวัติ</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:13px;font-weight:500">Ollama API URL</div>
+          <div style="font-size:11.5px;color:var(--text-dim);margin-top:2px">ค่าเริ่มต้น localhost:11434</div>
+        </div>
+        <span style="font-family:monospace;font-size:12px;color:var(--text-dim)">http://localhost:11434</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+        Activity Log
+      </div>
+      <button class="action-btn" onclick="clearLog()">ล้าง</button>
+    </div>
+    <div class="section-body">
+      <div id="log-box"></div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+const OLLAMA = 'http://localhost:11434';
+let logLines = [];
+
+// ── INIT ────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  await checkOllama();
+  await refreshModels();
+  loadSettings();
+});
+
+// ── OLLAMA STATUS ────────────────────────────────────────
+async function checkOllama() {
+  try {
+    const r = await fetch(`${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(3000) });
+    if (r.ok) {
+      document.getElementById('ollama-status').innerHTML = '<span class="dot green"></span>Online';
+      document.getElementById('ollama-version').textContent = 'เชื่อมต่อสำเร็จ';
+      log('ok', 'Ollama online ที่ localhost:11434');
+    }
+  } catch {
+    document.getElementById('ollama-status').innerHTML = '<span class="dot red"></span>Offline';
+    document.getElementById('ollama-version').textContent = 'เชื่อมต่อไม่ได้';
+    log('err', 'เชื่อมต่อ Ollama ไม่ได้ — ตรวจสอบว่า engine กำลังทำงาน');
+  }
+}
+
+// ── MODELS ───────────────────────────────────────────────
+async function refreshModels() {
+  try {
+    const r = await fetch(`${OLLAMA}/api/tags`);
+    const data = await r.json();
+    const models = data.models || [];
+    const active = localStorage.getItem('activeModel') || 'gemma4:e4b';
+
+    document.getElementById('model-count').textContent = models.length;
+    document.getElementById('active-model-display').textContent = active;
+    document.getElementById('storage-info').textContent =
+      models.reduce((s, m) => s + (m.size || 0), 0) > 0
+        ? `${(models.reduce((s, m) => s + m.size, 0) / 1e9).toFixed(1)} GB รวม`
+        : 'N/A';
+
+    const list = document.getElementById('model-list');
+    if (models.length === 0) {
+      list.innerHTML = '<div style="color:var(--text-dim);font-size:13px">ยังไม่มี model — ใช้ Pull ด้านล่าง</div>';
+      return;
+    }
+
+    list.innerHTML = models.map(m => `
+      <div class="model-row">
+        <div>
+          <div class="model-name">${m.name}</div>
+          <div class="model-size">${m.size ? (m.size/1e9).toFixed(1)+' GB' : '—'} · ${m.details?.parameter_size || ''}</div>
+        </div>
+        ${m.name === active ? '<span class="badge active">ใช้งานอยู่</span>' : '<span class="badge available">พร้อม</span>'}
+        <button class="action-btn" onclick="setActive('${m.name}')">ใช้งาน</button>
+        <button class="action-btn danger" onclick="deleteModel('${m.name}')">ลบ</button>
+      </div>
+    `).join('');
+
+    // update default model select
+    const sel = document.getElementById('default-model-select');
+    sel.innerHTML = models.map(m => `<option value="${m.name}" ${m.name===active?'selected':''}>${m.name}</option>`).join('');
+
+    log('info', `โหลด ${models.length} models สำเร็จ`);
+  } catch (e) {
+    log('err', 'โหลด models ไม่ได้: ' + e.message);
+  }
+}
+
+function setActive(name) {
+  localStorage.setItem('activeModel', name);
+  toast(`✓ เปลี่ยน default model เป็น ${name}`);
+  refreshModels();
+  log('ok', `เปลี่ยน active model เป็น ${name}`);
+}
+
+async function deleteModel(name) {
+  if (!confirm(`ลบ model "${name}" ออกจาก USB?\n(ต้อง pull ใหม่ถ้าต้องการใช้อีกครั้ง)`)) return;
+  try {
+    await fetch(`${OLLAMA}/api/delete`, { method: 'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name }) });
+    toast(`ลบ ${name} แล้ว`);
+    log('ok', `ลบ model ${name} สำเร็จ`);
+    refreshModels();
+  } catch (e) { log('err', 'ลบไม่ได้: ' + e.message); }
+}
+
+async function pullModel() {
+  const name = document.getElementById('pull-input').value.trim();
+  if (!name) return;
+  const progress = document.getElementById('pull-progress');
+  progress.style.display = 'block';
+  progress.textContent = `⬇ กำลัง pull ${name}...`;
+  log('info', `เริ่ม pull ${name}`);
+
+  try {
+    const r = await fetch(`${OLLAMA}/api/pull`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name, stream: true })
+    });
+    const reader = r.body.getReader();
+    const dec = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const lines = dec.decode(value).split('\n').filter(Boolean);
+      for (const line of lines) {
+        try {
+          const d = JSON.parse(line);
+          if (d.status) progress.textContent = `⬇ ${name}: ${d.status}${d.completed && d.total ? ` (${Math.round(d.completed/d.total*100)}%)` : ''}`;
+        } catch {}
+      }
+    }
+    toast(`✓ Pull ${name} สำเร็จ`);
+    log('ok', `Pull ${name} เสร็จสมบูรณ์`);
+    document.getElementById('pull-input').value = '';
+    progress.style.display = 'none';
+    refreshModels();
+  } catch (e) {
+    progress.textContent = '❌ Pull ไม่สำเร็จ: ' + e.message;
+    log('err', 'Pull ล้มเหลว: ' + e.message);
+  }
+}
+
+// ── AUTOMATION ───────────────────────────────────────────
+function autoPrompt(text) {
+  document.getElementById('auto-prompt-input').value = text;
+}
+
+async function generateScript() {
+  const prompt = document.getElementById('auto-prompt-input').value.trim();
+  if (!prompt) return;
+  const os = document.querySelector('input[name="os"]:checked').value;
+  const osLabel = os === 'mac' ? 'macOS AppleScript' : 'Windows PowerShell';
+  const output = document.getElementById('script-output');
+  const content = document.getElementById('script-content');
+
+  output.style.display = 'block';
+  content.textContent = 'กำลังสร้าง script...';
+  log('info', `สร้าง automation script: ${prompt}`);
+
+  const active = localStorage.getItem('activeModel') || 'gemma4:e4b';
+  try {
+    const r = await fetch(`${OLLAMA}/api/chat`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: active,
+        stream: true,
+        messages: [{
+          role: 'system',
+          content: `คุณเป็นผู้เชี่ยวชาญ ${osLabel} script. เขียน script ที่ทำงานได้จริง ไม่มีคำอธิบายเพิ่มเติม ตอบด้วย script เท่านั้น ครอบด้วย code block`
+        }, {
+          role: 'user',
+          content: `เขียน ${osLabel} script สำหรับ: ${prompt}`
+        }]
+      })
+    });
+    const reader = r.body.getReader();
+    const dec = new TextDecoder();
+    let full = '';
+    content.textContent = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of dec.decode(value).split('\n').filter(Boolean)) {
+        try { full += JSON.parse(line).message?.content || ''; content.textContent = full; } catch {}
+      }
+    }
+    log('ok', 'สร้าง script สำเร็จ');
+  } catch (e) {
+    content.textContent = 'สร้างไม่สำเร็จ: ' + e.message;
+    log('err', e.message);
+  }
+}
+
+function copyScript() {
+  const text = document.getElementById('script-content').textContent;
+  navigator.clipboard.writeText(text).then(() => toast('คัดลอก script แล้ว'));
+}
+
+// ── SETTINGS ─────────────────────────────────────────────
+function loadSettings() {
+  const active = localStorage.getItem('activeModel') || 'gemma4:e4b';
+  document.getElementById('active-model-display').textContent = active;
+}
+
+function saveDefaultModel(val) {
+  localStorage.setItem('activeModel', val);
+  toast(`✓ ตั้ง default model เป็น ${val}`);
+  log('ok', `default model = ${val}`);
+}
+
+function clearHistory() {
+  if (!confirm('ล้างประวัติแชทใน browser ทั้งหมด?')) return;
+  localStorage.removeItem('conversations');
+  toast('ล้างประวัติแล้ว');
+  log('ok', 'ล้าง localStorage conversations');
+}
+
+// ── LOG ──────────────────────────────────────────────────
+function log(type, msg) {
+  const time = new Date().toLocaleTimeString('th');
+  const cls = type === 'ok' ? 'log-ok' : type === 'err' ? 'log-err' : 'log-info';
+  logLines.unshift(`<span class="${cls}">[${time}] ${msg}</span>`);
+  if (logLines.length > 50) logLines.pop();
+  document.getElementById('log-box').innerHTML = logLines.join('<br>');
+}
+
+function clearLog() { logLines = []; document.getElementById('log-box').innerHTML = ''; }
+
+// ── TOAST ────────────────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 2500);
+}
+</script>
+</body>
+</html>

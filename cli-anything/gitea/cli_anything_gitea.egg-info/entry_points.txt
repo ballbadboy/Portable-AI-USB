@@ -1,0 +1,2 @@
+[console_scripts]
+cli-anything-gitea = cli_anything.gitea.gitea_cli:cli

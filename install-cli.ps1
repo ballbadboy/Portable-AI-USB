@@ -45,29 +45,27 @@ $PYTHON = "$VENV\Scripts\python.exe"
 Write-Host ""
 Write-Host "[3/4] ติดตั้ง CLI harnesses..." -ForegroundColor Yellow
 
-Write-Host "      ollama CLI..." -ForegroundColor Magenta
-& $PIP install --quiet -e "$CLI_DIR\ollama"
-Write-Host "      ollama CLI OK" -ForegroundColor Green
-
-Write-Host "      browser CLI..." -ForegroundColor Magenta
-& $PIP install --quiet -e "$CLI_DIR\browser"
-Write-Host "      browser CLI OK" -ForegroundColor Green
-
-Write-Host "      libreoffice CLI..." -ForegroundColor Magenta
-& $PIP install --quiet -e "$CLI_DIR\libreoffice"
-Write-Host "      libreoffice CLI OK" -ForegroundColor Green
+$harnesses = @("ollama","browser","libreoffice","anygen","joplin","plantuml","jupyterlab","gitea","meeting")
+foreach ($h in $harnesses) {
+    if (Test-Path "$CLI_DIR\$h") {
+        Write-Host "      $h CLI..." -ForegroundColor Magenta
+        & $PIP install --quiet -e "$CLI_DIR\$h"
+        Write-Host "      $h OK" -ForegroundColor Green
+    }
+}
 
 # Verify
 Write-Host ""
 Write-Host "[4/4] ตรวจสอบการติดตั้ง..." -ForegroundColor Yellow
 $SCRIPTS = "$VENV\Scripts"
 $ok = 0
-foreach ($cmd in @("cli-anything-ollama", "cli-anything-browser", "cli-anything-libreoffice")) {
+$cmds = @("cli-anything-ollama","cli-anything-browser","cli-anything-libreoffice","cli-anything-anygen","cli-anything-joplin","cli-anything-plantuml","cli-anything-jupyterlab","cli-anything-gitea","cli-anything-meeting")
+foreach ($cmd in $cmds) {
     if (Test-Path "$SCRIPTS\$cmd.exe") {
         Write-Host "      ✓ $cmd" -ForegroundColor Green
         $ok++
     } else {
-        Write-Host "      ✗ $cmd ไม่พบ" -ForegroundColor Red
+        Write-Host "      ✗ $cmd ไม่พบ" -ForegroundColor Yellow
     }
 }
 

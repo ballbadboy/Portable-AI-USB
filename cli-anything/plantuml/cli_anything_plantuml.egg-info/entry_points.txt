@@ -1,0 +1,2 @@
+[console_scripts]
+cli-anything-plantuml = cli_anything.plantuml.plantuml_cli:cli

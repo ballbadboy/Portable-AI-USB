@@ -43,23 +43,19 @@ PYTHON="$VENV/bin/python"
 echo ""
 echo "[3/4] ติดตั้ง CLI harnesses..."
 
-echo "      ollama CLI..."
-"$PIP" install --quiet -e "$CLI_DIR/ollama"
-echo "      ✓ ollama CLI"
-
-echo "      browser CLI..."
-"$PIP" install --quiet -e "$CLI_DIR/browser"
-echo "      ✓ browser CLI"
-
-echo "      libreoffice CLI..."
-"$PIP" install --quiet -e "$CLI_DIR/libreoffice"
-echo "      ✓ libreoffice CLI"
+for h in ollama browser libreoffice anygen joplin plantuml jupyterlab gitea meeting; do
+    if [ -d "$CLI_DIR/$h" ]; then
+        echo "      $h..."
+        "$PIP" install --quiet -e "$CLI_DIR/$h"
+        echo "      ✓ $h"
+    fi
+done
 
 # Verify
 echo ""
 echo "[4/4] ตรวจสอบการติดตั้ง..."
 OK=0
-for cmd in cli-anything-ollama cli-anything-browser cli-anything-libreoffice; do
+for cmd in cli-anything-ollama cli-anything-browser cli-anything-libreoffice cli-anything-anygen cli-anything-joplin cli-anything-plantuml cli-anything-jupyterlab cli-anything-gitea cli-anything-meeting; do
     if [ -f "$VENV/bin/$cmd" ]; then
         echo "      ✓ $cmd"
         OK=$((OK+1))

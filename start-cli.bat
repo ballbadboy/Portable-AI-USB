@@ -1,99 +1,69 @@
 @echo off
-title Portable AI - CLI Mode
+title Portable AI - CLI-Anything Mode
 color 0B
-
 set "USB=%~dp0"
 set "VENV=%USB%cli-anything\venv"
 set "SCRIPTS=%VENV%\Scripts"
 set "OLLAMA_MODELS=%USB%ollama\data"
 
-:: Check if CLI is installed
 if not exist "%SCRIPTS%\cli-anything-ollama.exe" (
-    echo.
-    echo  CLI-Anything ยังไม่ได้ติดตั้ง
-    echo  กรุณารัน install-cli.ps1 ก่อน
-    echo.
-    pause
-    exit /b
+    echo. & echo  CLI ยังไม่ได้ติดตั้ง — รัน install-cli.ps1 ก่อน & echo.
+    pause & exit /b
 )
 
-:: Start Ollama in background (if not running)
 tasklist /FI "IMAGENAME eq ollama.exe" 2>NUL | find /I "ollama.exe" >NUL
 if errorlevel 1 (
-    echo  กำลังเริ่ม Ollama engine...
     start "" /B "%USB%ollama\ollama.exe" serve
     timeout /t 3 >nul
 )
 
+:MENU
 cls
 echo.
-echo  ██████╗ ██████╗ ██████╗ ████████╗ █████╗ ██████╗ ██╗     ███████╗
-echo  ██╔══██╗██╔═══██╗██╔══██╗╚══██╔══╝██╔══██╗██╔══██╗██║     ██╔════╝
-echo  ██████╔╝██║   ██║██████╔╝   ██║   ███████║██████╔╝██║     █████╗
-echo  ██╔═══╝ ██║   ██║██╔══██╗   ██║   ██╔══██║██╔══██╗██║     ██╔══╝
-echo  ██║     ╚██████╔╝██║  ██║   ██║   ██║  ██║██████╔╝███████╗███████╗
-echo  ╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═════╝ ╚══════╝╚══════╝
+echo  +========================================================+
+echo  ^|        Portable AI -- CLI-Anything Edition            ^|
+echo  +========================================================^|
+echo  ^|  AI & Models                                          ^|
+echo  ^|  [1] ollama        -- จัดการ model + chat             ^|
+echo  ^|  [2] anygen        -- สร้าง slides, docs ด้วย AI     ^|
+echo  +--------------------------------------------------------+
+echo  ^|  เอกสาร & ความรู้                                     ^|
+echo  ^|  [3] libreoffice   -- Writer, Calc, Impress           ^|
+echo  ^|  [4] joplin        -- Note-taking                     ^|
+echo  ^|  [5] jupyterlab    -- Notebook + data analysis        ^|
+echo  +--------------------------------------------------------+
+echo  ^|  Diagram                                              ^|
+echo  ^|  [6] plantuml      -- UML diagrams จาก text           ^|
+echo  +--------------------------------------------------------+
+echo  ^|  Web & Dev                                            ^|
+echo  ^|  [7] browser       -- Browser automation              ^|
+echo  ^|  [8] gitea         -- Git server management           ^|
+echo  +--------------------------------------------------------+
+echo  ^|  ประชุม                                               ^|
+echo  ^|  [9] meeting       -- บันทึก แปล สรุปประชุม           ^|
+echo  +--------------------------------------------------------+
+echo  ^|  [U] UI  -- เปิด chat.html   [Q] ออก                 ^|
+echo  +========================================================+
 echo.
-echo  Portable AI - CLI-Anything Mode
-echo  ═══════════════════════════════════════════
-echo.
-echo  [1] ollama      — จัดการ model และ chat
-echo  [2] browser     — ควบคุม browser อัตโนมัติ
-echo  [3] libreoffice — สร้างและแก้ไขเอกสาร
-echo  [4] UI (chat)   — เปิด chat.html ใน browser
-echo  [Q] ออก
-echo.
-set /p CHOICE="  เลือก (1/2/3/4/Q): "
+set /p CHOICE="  เลือก: "
 
-if /i "%CHOICE%"=="1" goto OLLAMA
-if /i "%CHOICE%"=="2" goto BROWSER
-if /i "%CHOICE%"=="3" goto LIBREOFFICE
-if /i "%CHOICE%"=="4" goto UI
+call "%SCRIPTS%\activate.bat" >nul 2>&1
+
+if "%CHOICE%"=="1" ( cls & echo  Ollama REPL & cli-anything-ollama & goto AFTER )
+if "%CHOICE%"=="2" ( cls & echo  AnyGen & cli-anything-anygen & goto AFTER )
+if "%CHOICE%"=="3" ( cls & echo  LibreOffice & cli-anything-libreoffice & goto AFTER )
+if "%CHOICE%"=="4" ( cls & echo  Joplin & cli-anything-joplin & goto AFTER )
+if "%CHOICE%"=="5" ( cls & echo  JupyterLab & cli-anything-jupyterlab & goto AFTER )
+if "%CHOICE%"=="6" ( cls & echo  PlantUML & cli-anything-plantuml & goto AFTER )
+if "%CHOICE%"=="7" ( cls & echo  Browser & cli-anything-browser & goto AFTER )
+if "%CHOICE%"=="8" ( cls & echo  Gitea & cli-anything-gitea & goto AFTER )
+if "%CHOICE%"=="9" ( cls & echo  Meeting & cli-anything-meeting & goto AFTER )
+if /i "%CHOICE%"=="U" ( start "" "%USB%chat.html" & goto MENU )
 if /i "%CHOICE%"=="Q" goto END
-goto END
+goto MENU
 
-:OLLAMA
-cls
-echo  ── Ollama REPL ─────────────────────────────────────────────
-echo  พิมพ์ help เพื่อดูคำสั่ง, Ctrl+C เพื่อออก
-echo  ────────────────────────────────────────────────────────────
-echo.
-call "%SCRIPTS%\activate.bat"
-cli-anything-ollama
-goto MENU_AGAIN
-
-:BROWSER
-cls
-echo  ── Browser Automation REPL ─────────────────────────────────
-echo  ต้องการ DOMShell: npx @apireno/domshell
-echo  ────────────────────────────────────────────────────────────
-echo.
-call "%SCRIPTS%\activate.bat"
-cli-anything-browser
-goto MENU_AGAIN
-
-:LIBREOFFICE
-cls
-echo  ── LibreOffice REPL ─────────────────────────────────────────
-echo  ต้องการ LibreOffice ติดตั้งในเครื่อง
-echo  ────────────────────────────────────────────────────────────
-echo.
-call "%SCRIPTS%\activate.bat"
-cli-anything-libreoffice
-goto MENU_AGAIN
-
-:UI
-start "" "%USB%chat.html"
-goto MENU_AGAIN
-
-:MENU_AGAIN
-echo.
-echo  กด Enter เพื่อกลับเมนู...
-pause >nul
-goto START_MENU
-
-:START_MENU
-call start-cli.bat
+:AFTER
+echo. & pause & goto MENU
 
 :END
 echo  ออกจาก CLI Mode
